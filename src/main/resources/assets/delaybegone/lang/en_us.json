@@ -1,0 +1,13 @@
+{
+  "itemGroup.delaybegone": "Example Mod Tab",
+  "block.delaybegone.example_block": "Example Block",
+  "item.delaybegone.example_item": "Example Item",
+
+  "delaybegone.configuration.title": "Delay Be Gone Configs",
+  "delaybegone.configuration.section.delaybegone.common.toml": "Delay Be Gone Configs",
+  "delaybegone.configuration.section.delaybegone.common.toml.title": "Delay Be Gone Configs",
+  "delaybegone.configuration.items": "Item List",
+  "delaybegone.configuration.logDirtBlock": "Log Dirt Block",
+  "delaybegone.configuration.magicNumberIntroduction": "Magic Number Text",
+  "delaybegone.configuration.magicNumber": "Magic Number"
+}

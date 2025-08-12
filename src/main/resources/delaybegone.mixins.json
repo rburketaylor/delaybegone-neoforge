@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "com.iamtis.delaybegone.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "DelayBeGoneMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
