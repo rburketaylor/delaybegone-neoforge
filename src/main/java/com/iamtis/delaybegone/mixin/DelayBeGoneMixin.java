@@ -1,14 +1,16 @@
 package com.iamtis.delaybegone.mixin;
 
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.Constant;
+import org.spongepowered.asm.mixin.injection.ModifyConstant;
 
-@Mixin(net.minecraft.world.item.ShieldItem.class)
+@Mixin(net.minecraft.world.entity.LivingEntity.class)
 public class DelayBeGoneMixin {
-    @Shadow
-    @Final
-    @Mutable
-    public static int EFFECTIVE_BLOCK_DELAY = 0;
+    /**
+     * Remove shield block delay by changing the required duration from 5 ticks to 0
+     */
+    @ModifyConstant(method = "isBlocking", constant = @Constant(intValue = 5))
+    private int removeShieldDelay(int original) {
+        return 0;
+    }
 }
