@@ -26,5 +26,13 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
+      - name: Get latest MC version
+        id: get-version
+        run: |
+          # Get the latest version by sorting the property files
+          LATEST=$(ls versions/*.properties | grep -v common | sed 's/versions\///' | sed 's/\.properties//' | sort -V | tail -1)
+          echo "latest-version=$LATEST" >> $GITHUB_OUTPUT
+          echo "Building latest version: $LATEST"
+
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build -PmcVersion=${{ steps.get-version.outputs.latest-version }}
