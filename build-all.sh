@@ -1,12 +1,31 @@
 #!/bin/bash
 
 clean_flag=""
-if [ "$1" == "clean" ]; then
+full_mode=false
+
+if [ "$1" == "clean-cache" ]; then
+    echo "Cleaning all build caches..."
+    rm -rf build-cache/
+    echo "All build caches cleared."
+    exit 0
+elif [ "$1" == "clean" ]; then
     clean_flag="clean"
     echo "Building DelayBeGone for all supported versions with clean..."
+elif [ "$1" == "full" ]; then
+    full_mode=true
+    echo "Building DelayBeGone for all supported versions with full build (tests + javadoc)..."
+elif [ "$1" == "clean-full" ] || [ "$2" == "full" ]; then
+    clean_flag="clean"
+    full_mode=true
+    echo "Building DelayBeGone for all supported versions with clean + full build..."
 else
-    echo "Building DelayBeGone for all supported versions..."
+    echo "Building DelayBeGone for all supported versions (fast mode - use 'full' for complete build)..."
+    echo "Use 'clean-cache' to clear all build caches if needed."
 fi
+
+# Ensure clean daemon state for reliable multi-version builds
+echo "Stopping any existing daemons..."
+./gradlew --stop
 
 echo "Discovering versions from properties files..."
 versions=()
@@ -23,7 +42,19 @@ for version in "${versions[@]}"; do
     echo "Building for Minecraft $version"
     echo "========================================"
     
-    ./gradlew $clean_flag build -PmcVersion=$version
+    # Clean build directory to avoid copying old artifacts
+    rm -rf build/libs/*.jar
+    
+    # Stop daemon before each build to prevent memory accumulation
+    ./gradlew --stop
+    
+    # Use separate project cache directory for each version to enable caching
+    
+    if [ "$full_mode" == "true" ]; then
+        ./gradlew $clean_flag build -PmcVersion=$version --project-cache-dir="build-cache/$version"
+    else
+        ./gradlew $clean_flag jar -x test -x javadoc -PmcVersion=$version --project-cache-dir="build-cache/$version"
+    fi
     
     if [ $? -ne 0 ]; then
         echo "ERROR: Build failed for version $version"
@@ -40,3 +71,6 @@ echo "========================================"
 echo "All builds completed successfully!"
 echo "Check the 'builds' folder for artifacts."
 echo "========================================"
+
+# Pause for user to read output (like Windows batch pause)
+read -p "Press Enter to continue..."

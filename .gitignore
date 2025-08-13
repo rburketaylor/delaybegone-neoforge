@@ -25,5 +25,23 @@ run-data
 builds
 # Claude Code personal settings (keep .claude/settings.json in repo)
 .claude/settings.local.json
+build-cache
 
+# java heap dumps and crash logs
+*.hprof
+hs_err_pid*.log
+replay_pid*.log
+
+# logs
+logs/
+*.log
+
+# temp and cache files
+*.tmp
+*.temp
+.cache/
+.DS_Store
+Thumbs.db
+
+# neoforge specific
 repo
