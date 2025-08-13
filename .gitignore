@@ -23,6 +23,7 @@ run
 runs
 run-data
 builds
-.claude
+# Claude Code personal settings (keep .claude/settings.json in repo)
+.claude/settings.local.json
 
 repo
