@@ -4,6 +4,13 @@ setlocal enabledelayedexpansion
 set clean_flag=
 set full_mode=false
 
+if "%1"=="clean-cache" (
+    echo Cleaning all build caches...
+    if exist "build-cache" rmdir /s /q "build-cache"
+    echo All build caches cleared.
+    pause
+    exit /b 0
+)
 if "%1"=="clean" (
     set clean_flag=clean
     echo Building DelayBeGone for all supported versions with clean...
@@ -23,7 +30,10 @@ if "%2"=="full" (
     echo Building DelayBeGone for all supported versions with clean + full build...
 )
 
-if "%full_mode%"=="false" echo Building DelayBeGone for all supported versions (fast mode)...
+if "%full_mode%"=="false" (
+    echo Building DelayBeGone for all supported versions (fast mode)...
+    echo Use 'clean-cache' to clear all build caches if needed.
+)
 
 rem Ensure clean daemon state for reliable multi-version builds
 echo Stopping any existing daemons...
@@ -50,10 +60,12 @@ for %%v in (%versions%) do (
     rem Stop daemon before each build to prevent memory accumulation
     call gradlew --stop
     
+    rem Use separate project cache directory for each version to enable caching
+    
     if "%full_mode%"=="true" (
-        call gradlew %clean_flag% build -PmcVersion=%%v
+        call gradlew %clean_flag% build -PmcVersion=%%v --project-cache-dir=build-cache\%%v
     ) else (
-        call gradlew %clean_flag% jar -x test -x javadoc -PmcVersion=%%v
+        call gradlew %clean_flag% jar -x test -x javadoc -PmcVersion=%%v --project-cache-dir=build-cache\%%v
     )
     
     if errorlevel 1 (

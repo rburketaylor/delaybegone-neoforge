@@ -23,6 +23,7 @@ run
 runs
 run-data
 builds
+build-cache
 .claude
 
 # java heap dumps and crash logs
