@@ -25,4 +25,21 @@ run-data
 builds
 .claude
 
+# java heap dumps and crash logs
+*.hprof
+hs_err_pid*.log
+replay_pid*.log
+
+# logs
+logs/
+*.log
+
+# temp and cache files
+*.tmp
+*.temp
+.cache/
+.DS_Store
+Thumbs.db
+
+# neoforge specific
 repo

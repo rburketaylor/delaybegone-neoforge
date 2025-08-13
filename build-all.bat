@@ -2,12 +2,32 @@
 setlocal enabledelayedexpansion
 
 set clean_flag=
+set full_mode=false
+
 if "%1"=="clean" (
     set clean_flag=clean
     echo Building DelayBeGone for all supported versions with clean...
-) else (
-    echo Building DelayBeGone for all supported versions...
 )
+if "%1"=="full" (
+    set full_mode=true
+    echo Building DelayBeGone for all supported versions with full build...
+)
+if "%1"=="clean-full" (
+    set clean_flag=clean
+    set full_mode=true
+    echo Building DelayBeGone for all supported versions with clean + full build...
+)
+if "%2"=="full" (
+    set clean_flag=clean
+    set full_mode=true
+    echo Building DelayBeGone for all supported versions with clean + full build...
+)
+
+if "%full_mode%"=="false" echo Building DelayBeGone for all supported versions (fast mode)...
+
+rem Ensure clean daemon state for reliable multi-version builds
+echo Stopping any existing daemons...
+call gradlew --stop
 
 echo Discovering versions from properties files...
 set versions=
@@ -23,7 +43,19 @@ for %%v in (%versions%) do (
     echo ========================================
     echo Building for Minecraft %%v
     echo ========================================
-    call gradlew !clean_flag! build -PmcVersion=%%v
+    
+    rem Clean build directory to avoid copying old artifacts
+    if exist "build\libs\*.jar" del "build\libs\*.jar"
+    
+    rem Stop daemon before each build to prevent memory accumulation
+    call gradlew --stop
+    
+    if "%full_mode%"=="true" (
+        call gradlew %clean_flag% build -PmcVersion=%%v
+    ) else (
+        call gradlew %clean_flag% jar -x test -x javadoc -PmcVersion=%%v
+    )
+    
     if errorlevel 1 (
         echo ERROR: Build failed for version %%v
         pause
