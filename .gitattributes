@@ -1,5 +1,27 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force LF for shell scripts (Unix/macOS)
+*.sh text eol=lf
+
+# Force CRLF for batch files (Windows)
+*.bat text eol=crlf
+
+# Force specific files to be treated as text with LF
+*.java text eol=lf
+*.md text eol=lf
+*.properties text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.gradle text eol=lf
+gradlew text eol=lf
+
+# Force binary files
+*.jar binary
+*.png binary
+*.jpg binary
+*.class binary
+
 # Disable autocrlf on generated files, they always generate with LF
-# Add any extra files or paths here to make git stop saying they
-# are changed when only line endings change.
 src/generated/**/.cache/cache text eol=lf
 src/generated/**/*.json text eol=lf

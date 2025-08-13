@@ -7,6 +7,33 @@ plugins {
 // Multi-version support - load common + version-specific properties
 def mcVersion = project.hasProperty('mcVersion') ? project.mcVersion : null
 
+// If no mcVersion specified, auto-detect the latest version from versions folder
+if (mcVersion == null) {
+    def versionsDir = file("versions")
+    def versionFiles = versionsDir.listFiles()?.findAll { 
+        it.name.endsWith('.properties') && it.name != 'common.properties' 
+    }
+    
+    if (versionFiles?.size() > 0) {
+        // Sort versions naturally (e.g., 1.21.10 comes after 1.21.9)
+        def versions = versionFiles.collect { it.name.replace('.properties', '') }
+        versions.sort { a, b ->
+            def aParts = a.split('\\.').collect { Integer.parseInt(it) }
+            def bParts = b.split('\\.').collect { Integer.parseInt(it) }
+            
+            for (int i = 0; i < Math.max(aParts.size(), bParts.size()); i++) {
+                def aVal = i < aParts.size() ? aParts[i] : 0
+                def bVal = i < bParts.size() ? bParts[i] : 0
+                if (aVal != bVal) return aVal <=> bVal
+            }
+            return 0
+        }
+        
+        mcVersion = versions.last()
+        println("No mcVersion specified, automatically using latest version: ${mcVersion}")
+    }
+}
+
 // Load common properties first
 def commonPropsFile = file("versions/common.properties")
 if (commonPropsFile.exists()) {
@@ -41,8 +68,10 @@ if (mcVersion != null) {
                                 "Usage: ./gradlew build -PmcVersion=<version>")
     }
 } else {
-    throw new GradleException("No Minecraft version specified!\n" +
-                            "Usage: ./gradlew build -PmcVersion=<version>")
+    if (mcVersion == null) {
+        throw new GradleException("No Minecraft version specified and no version properties files found!\n" +
+                                "Usage: ./gradlew build -PmcVersion=<version>")
+    }
 }
 
 tasks.named('wrapper', Wrapper).configure {
