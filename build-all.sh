@@ -71,6 +71,3 @@ echo "========================================"
 echo "All builds completed successfully!"
 echo "Check the 'builds' folder for artifacts."
 echo "========================================"
-
-# Pause for user to read output (like Windows batch pause)
-read -p "Press Enter to continue..."
