@@ -34,11 +34,17 @@ This mod supports multiple Minecraft versions with NeoForge. Here's how to build
 # Build all versions - fast incremental builds
 ./gradlew buildAll
 
-# Build all versions with clean - slower but ensures fresh build
+# Clean and build all versions (fast mode) - builds jar only, skips tests/javadoc
 ./gradlew cleanBuildAll
+
+# Clean and build all versions (full mode) - runs complete build including tests
+./gradlew cleanBuildAllFull
 ```
 
-**Performance Note:** The Gradle tasks default to incremental builds for faster compilation. Use the `cleanBuildAll` task only when you need a completely fresh build or are troubleshooting build issues.
+**Performance Note:** 
+- Use `buildAll` for fastest incremental builds during development
+- Use `cleanBuildAll` for fresh jar builds when troubleshooting (skips tests/javadoc for speed)  
+- Use `cleanBuildAllFull` for complete clean builds including all tasks (tests, javadoc, etc.)
 
 ## Output
 - Individual builds: `build/libs/`
