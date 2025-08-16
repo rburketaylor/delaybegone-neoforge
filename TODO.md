@@ -7,7 +7,7 @@
 
 ## Build System
 - [ ] Add build time reporting to measure cache effectiveness
-- [ ] Consider adding option to build specific versions only (e.g., `./build-all.sh 1.21.5 1.21.6`)
+- [ ] Consider adding option to build specific versions only (e.g., `./gradlew buildVersions -PversionsFilter=1.21.5,1.21.6`)
 - [ ] Add validation that cache directories don't exceed reasonable size limits
 - [ ] Investigate if daemon restarts are still needed with separated caches
 
@@ -38,5 +38,5 @@
 - [x] Fix OutOfMemoryError issues with increased heap size
 - [x] Add fast/full build modes
 - [x] Implement separate cache directories per version
-- [x] Synchronize build-all.sh and build-all.bat functionality
+- [x] Replace shell scripts with unified Gradle tasks
 - [x] Add comprehensive .gitignore for build artifacts

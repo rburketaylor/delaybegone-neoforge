@@ -44,8 +44,7 @@ cd delaybegone-neoforge
 ./gradlew build -PmcVersion=1.21.1
 
 # Build all supported versions
-./build-all.sh          # Linux/Mac
-./build-all.bat          # Windows
+./gradlew buildAll
 ```
 
 ### Development
@@ -78,7 +77,7 @@ All Rights Reserved
 This project uses an automated multi-version build system. When adding support for new Minecraft versions:
 
 1. Create a new properties file in `versions/{version}.properties`
-2. The build scripts will automatically detect the new version
+2. The Gradle tasks will automatically detect the new version
 3. Update the GitHub Actions workflow matrix if using CI
 
 See [CLAUDE.md](CLAUDE.md) for detailed development guidance.

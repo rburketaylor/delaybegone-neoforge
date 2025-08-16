@@ -31,13 +31,11 @@ All supported versions are automatically discovered from `.properties` files in 
 
 ### Multi-Version Builds
 ```
-# Fast incremental builds (default)
-./build-all.sh          # Linux/Mac
-build-all.bat          # Windows
+# Build all supported versions (fast incremental builds)
+./gradlew buildAll
 
-# Clean builds (slower, ensures fresh build)
-./build-all.sh clean
-build-all.bat clean
+# Clean builds for all versions (slower, ensures fresh build)
+./gradlew cleanBuildAll
 ```
 
 ### Development Tasks
@@ -66,13 +64,13 @@ The mod uses `@ModifyConstant` to change the hardcoded `5` tick delay to `0` in 
 
 - Gradle daemon, parallel builds, and caching are enabled in `common.properties`
 - Java compiler includes `-Xlint` flags for deprecation, removal, and unchecked warnings
-- Build scripts default to incremental builds for speed, with optional `clean` flag
+- Gradle tasks default to incremental builds for speed, with optional `clean` variants
 
 ## Adding New Versions
 
 1. Create `versions/{new_version}.properties` with version-specific configuration
-2. Build scripts automatically detect the new version
-3. Update GitHub Actions matrix in `.github/workflows/build-all-versions.yml` if using CI
+2. Gradle tasks automatically detect the new version
+3. Update GitHub Actions workflow matrix if using CI
 
 ## Important Build Notes
 
