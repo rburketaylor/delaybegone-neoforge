@@ -3,10 +3,11 @@
   "package": "com.iamtis.delaybegone.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "DelayBeGoneMixin"
+    "DelayBeGoneMixin",
+    "BlocksAttacksMixin"
   ],
   "injectors": {
-    "defaultRequire": 1
+    "defaultRequire": 0
   },
   "overwrites": {
     "requireAnnotations": true
