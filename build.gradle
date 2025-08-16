@@ -185,7 +185,7 @@ dependencies {
 // When "copyIdeResources" is enabled, this will also run before the game launches in IDE environments.
 // See https://docs.gradle.org/current/dsl/org.gradle.language.jvm.tasks.ProcessResources.html
 tasks.withType(ProcessResources).configureEach {
-    var replaceProperties = [
+    def replaceProperties = [
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
@@ -257,8 +257,7 @@ def discoverVersions() {
             }
             return 0
         }
-        // TEMPORARY: For testing, only return first 2 versions
-        return versions.take(2)
+        return versions
     }
     return []
 }
@@ -295,12 +294,7 @@ def buildAllVersionsTask(String taskName, List<String> gradleTasks, boolean with
     println "Discovered ${versions.size()} versions: ${versions}"
     println ""
     
-    // Clean daemon state for reliable multi-version builds
-    println "Stopping any existing daemons..."
-    exec {
-        commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', '--stop'
-        ignoreExitValue = true
-    }
+    // Multi-version builds use --no-daemon to prevent memory accumulation
     
     try {
         versions.eachWithIndex { version, index ->
@@ -312,13 +306,9 @@ def buildAllVersionsTask(String taskName, List<String> gradleTasks, boolean with
             
             try {
                 // Clean build directory to avoid copying old artifacts
-                delete fileTree("build/libs") { include "*.jar" }
+                project.delete(fileTree("build/libs") { include "*.jar" })
                 
-                // Stop daemon before each build to prevent memory accumulation
-                exec {
-                    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', '--stop'
-                    ignoreExitValue = true
-                }
+                // Use --no-daemon to prevent memory accumulation
                 
                 // Build the version
                 def buildTasks = []
@@ -328,7 +318,7 @@ def buildAllVersionsTask(String taskName, List<String> gradleTasks, boolean with
                 buildTasks.addAll(gradleTasks)
                 
                 exec {
-                    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', *buildTasks, "-PmcVersion=${version}", "--project-cache-dir=build-cache/${version}"
+                    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', *buildTasks, "-PmcVersion=${version}", "--project-cache-dir=build-cache/${version}", "--no-daemon"
                 }
                 
                 // Move build artifacts
