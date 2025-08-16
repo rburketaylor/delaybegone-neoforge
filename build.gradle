@@ -189,6 +189,7 @@ tasks.withType(ProcessResources).configureEach {
             minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
             neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
             loader_version_range   : loader_version_range,
             mod_id                 : mod_id,
             mod_name               : mod_name,
@@ -229,5 +230,232 @@ idea {
     module {
         downloadSources = true
         downloadJavadoc = true
+    }
+}
+
+// ================================================================================
+// Multi-Version Build System
+// ================================================================================
+
+// Discover all available versions from the versions directory
+def discoverVersions() {
+    def versionsDir = file("versions")
+    def versionFiles = versionsDir.listFiles()?.findAll { 
+        it.name.endsWith('.properties') && it.name != 'common.properties' 
+    }
+    
+    if (versionFiles?.size() > 0) {
+        def versions = versionFiles.collect { it.name.replace('.properties', '') }
+        versions.sort { a, b ->
+            def aParts = a.split('\\.').collect { Integer.parseInt(it) }
+            def bParts = b.split('\\.').collect { Integer.parseInt(it) }
+            
+            for (int i = 0; i < Math.max(aParts.size(), bParts.size()); i++) {
+                def aVal = i < aParts.size() ? aParts[i] : 0
+                def bVal = i < bParts.size() ? bParts[i] : 0
+                if (aVal != bVal) return aVal <=> bVal
+            }
+            return 0
+        }
+        // TEMPORARY: For testing, only return first 2 versions
+        return versions.take(2)
+    }
+    return []
+}
+
+// Format time duration in human-readable format
+def formatDuration(long milliseconds) {
+    long seconds = milliseconds / 1000
+    if (seconds < 60) {
+        return "${seconds}.${(milliseconds % 1000) / 100 as int}s"
+    }
+    long minutes = seconds / 60
+    seconds = seconds % 60
+    if (minutes < 60) {
+        return "${minutes}m ${seconds}s"
+    }
+    long hours = minutes / 60
+    minutes = minutes % 60
+    return "${hours}h ${minutes}m ${seconds}s"
+}
+
+// Build all versions with specified gradle tasks
+def buildAllVersionsTask(String taskName, List<String> gradleTasks, boolean withClean = false) {
+    def versions = discoverVersions()
+    if (versions.isEmpty()) {
+        throw new GradleException("No version properties files found in versions/ directory!")
+    }
+    
+    def totalStartTime = System.currentTimeMillis()
+    def versionTimes = [:]
+    def successfulVersions = []
+    def failedVersions = [:]
+    
+    println "Building DelayBeGone for all supported versions..."
+    println "Discovered ${versions.size()} versions: ${versions}"
+    println ""
+    
+    // Clean daemon state for reliable multi-version builds
+    println "Stopping any existing daemons..."
+    exec {
+        commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', '--stop'
+        ignoreExitValue = true
+    }
+    
+    try {
+        versions.eachWithIndex { version, index ->
+            def versionStartTime = System.currentTimeMillis()
+            
+            println "========================================"
+            println "Building ${index + 1}/${versions.size()}: Minecraft ${version}"
+            println "========================================"
+            
+            try {
+                // Clean build directory to avoid copying old artifacts
+                delete fileTree("build/libs") { include "*.jar" }
+                
+                // Stop daemon before each build to prevent memory accumulation
+                exec {
+                    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', '--stop'
+                    ignoreExitValue = true
+                }
+                
+                // Build the version
+                def buildTasks = []
+                if (withClean) {
+                    buildTasks.add('clean')
+                }
+                buildTasks.addAll(gradleTasks)
+                
+                exec {
+                    commandLine System.getProperty("os.name").toLowerCase().contains("windows") ? 'gradlew.bat' : './gradlew', *buildTasks, "-PmcVersion=${version}", "--project-cache-dir=build-cache/${version}"
+                }
+                
+                // Move build artifacts
+                def buildsDir = file("builds/${version}")
+                buildsDir.mkdirs()
+                copy {
+                    from fileTree("build/libs") { include "*.jar" }
+                    into buildsDir
+                }
+                
+                def versionTime = System.currentTimeMillis() - versionStartTime
+                versionTimes[version] = versionTime
+                successfulVersions.add(version)
+                
+                println "✅ Successfully built ${version} (${formatDuration(versionTime)})"
+                
+            } catch (Exception e) {
+                def versionTime = System.currentTimeMillis() - versionStartTime
+                versionTimes[version] = versionTime
+                failedVersions[version] = e.message
+                
+                println "❌ Build failed for ${version} (${formatDuration(versionTime)})"
+                println "Reason: ${e.message}"
+                throw new GradleException("Multi-version build failed at ${version}")
+            }
+        }
+        
+        // Success summary
+        def totalTime = System.currentTimeMillis() - totalStartTime
+        def avgTime = versionTimes.values().sum() / versionTimes.size()
+        
+        println ""
+        println "========================================"
+        println "✅ BUILD SUMMARY"
+        println "========================================"
+        println "All ${versions.size()} versions built successfully in ${formatDuration(totalTime)}"
+        println ""
+        println "Artifacts saved to:"
+        versions.each { version ->
+            def jarFiles = fileTree("builds/${version}") { include "*.jar" }
+            jarFiles.each { jar ->
+                println "- builds/${version}/ (${jar.name})"
+            }
+        }
+        println ""
+        println "Average build time: ${formatDuration(avgTime as long)} per version"
+        println "========================================"
+        
+    } catch (Exception e) {
+        // Failure summary
+        def totalTime = System.currentTimeMillis() - totalStartTime
+        
+        println ""
+        println "❌ BUILD FAILED"
+        println "${successfulVersions.size()}/${versions.size()} versions succeeded, ${failedVersions.size()} failed (${formatDuration(totalTime)} total)"
+        println ""
+        if (successfulVersions.size() > 0) {
+            println "✅ Successful: ${successfulVersions.join(', ')}"
+        }
+        if (failedVersions.size() > 0) {
+            println "❌ Failed: ${failedVersions.keySet().join(', ')}"
+        }
+        throw e
+    }
+}
+
+// Multi-version build tasks
+tasks.register('buildAll') {
+    description = 'Build all supported Minecraft versions (fast mode - jar only, no tests)'
+    group = 'build'
+    doLast {
+        buildAllVersionsTask('buildAll', ['jar', '-x', 'test', '-x', 'javadoc'])
+    }
+}
+
+tasks.register('buildAllFull') {
+    description = 'Build all supported Minecraft versions (full mode - with tests and javadoc)'
+    group = 'build'
+    doLast {
+        buildAllVersionsTask('buildAllFull', ['build'])
+    }
+}
+
+tasks.register('cleanBuildAll') {
+    description = 'Clean and build all supported Minecraft versions (fast mode)'
+    group = 'build'
+    doLast {
+        buildAllVersionsTask('cleanBuildAll', ['jar', '-x', 'test', '-x', 'javadoc'], true)
+    }
+}
+
+tasks.register('cleanBuildAllFull') {
+    description = 'Clean and build all supported Minecraft versions (full mode)'
+    group = 'build'
+    doLast {
+        buildAllVersionsTask('cleanBuildAllFull', ['build'], true)
+    }
+}
+
+// Utility tasks
+tasks.register('listVersions') {
+    description = 'List all discovered Minecraft versions'
+    group = 'help'
+    doLast {
+        def versions = discoverVersions()
+        if (versions.isEmpty()) {
+            println "No version properties files found in versions/ directory!"
+        } else {
+            println "Discovered ${versions.size()} supported versions:"
+            versions.each { version ->
+                println "- ${version}"
+            }
+        }
+    }
+}
+
+tasks.register('cleanAllCaches') {
+    description = 'Clean all version-specific build caches'
+    group = 'build'
+    doLast {
+        def buildCacheDir = file('build-cache')
+        if (buildCacheDir.exists()) {
+            println "Cleaning all build caches..."
+            delete buildCacheDir
+            println "All build caches cleared."
+        } else {
+            println "No build caches found to clean."
+        }
     }
 }
